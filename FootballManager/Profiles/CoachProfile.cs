@@ -8,6 +8,7 @@ namespace FootballManager.Profiles
         {
             CreateMap<Entities.Coach, Models.CoachDto>()
                 .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => $"{src.FirstName} {src.LastName}"))
+                .ForMember(dest => dest.TeamName, opt => opt.MapFrom(src => $"{src.Team.Name}"))
                 .ForMember(dest => dest.Age,
                 opt => opt.MapFrom(src =>
                     DateTime.Today.Year - src.DateOfBirth.Year

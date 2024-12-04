@@ -9,6 +9,7 @@
         public DateTime DateOfBirth { get; set; }
         public int Age { get; set; } // TODO: change to AutoMapper profile
         public int YearsOfExperience { get; set; }
+        public string TeamName {get; set; } = string.Empty;
     }
 
 }

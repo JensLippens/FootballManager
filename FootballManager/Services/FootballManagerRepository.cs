@@ -109,6 +109,7 @@ namespace FootballManager.Services
         public async Task<IEnumerable<Coach>> GetAllCoachesAsync()
         {
             return await _context.Coaches
+                .Include(c => c.Team)
                 .OrderBy(p => p.LastName).ThenBy(p => p.FirstName)
                 .ToListAsync();
         }
@@ -123,13 +124,15 @@ namespace FootballManager.Services
             searchQuery = searchQuery.Trim();
 
             return await _context.Coaches
+                .Include(c => c.Team)
                 .Where(c => c.FirstName.ToLower().Contains(searchQuery.ToLower()) || c.LastName.ToLower().Contains(searchQuery.ToLower()))
                 .OrderBy(c => c.LastName).ThenBy(c => c.FirstName)
                 .ToListAsync();
         }
         public async Task<Coach?> GetCoachAsync(int coachId)
         {
-            return await _context.Coaches
+            return await _context.Coaches                
+                .Include(c => c.Team)
                 .Where(c => c.Id == coachId)
                 .FirstOrDefaultAsync();
         }
@@ -137,6 +140,7 @@ namespace FootballManager.Services
         public async Task<Coach?> GetCoachFromTeamAsync(int teamId)
         {
             return await _context.Coaches
+                .Include(c => c.Team)
                 .Where(c => c.TeamId == teamId)
                 .FirstOrDefaultAsync();
         }
