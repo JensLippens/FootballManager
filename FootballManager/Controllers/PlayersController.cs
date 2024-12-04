@@ -138,7 +138,26 @@ namespace FootballManager.Controllers
 
             return NoContent();
         }
-        
+
+        [HttpDelete("team/{teamId}/player/{playerId}")]
+        public async Task<ActionResult> RemovePlayerFromTeam(int teamId, int playerId)
+        {
+            var playerEntity = await _repo.GetPlayerAsync(playerId);
+            if (playerEntity == null)
+            {
+                return NotFound();
+            }
+            if (playerEntity.TeamId != teamId)
+            {
+                return BadRequest($"Player {playerEntity.FirstName} {playerEntity.LastName} is not part of the team with Id {teamId}");
+            }
+
+            _repo.RemovePlayerFromTeamAsync(playerEntity, teamId);
+            await _repo.SaveChangesAsync();
+
+            return NoContent();
+        }
+         
         [HttpDelete("player/{playerId}")]
         public async Task<ActionResult> DeletePlayer(int playerId)
         {

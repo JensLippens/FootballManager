@@ -130,6 +130,26 @@ namespace FootballManager.Controllers
             return NoContent();
         }
 
+        [HttpDelete("team/{teamId}/coach/{coachId}")]
+        public async Task<ActionResult> RemoveCoachFromTeam(int teamId, int coachId)
+        {
+            var coachEntity = await _repo.GetCoachAsync(coachId);
+            if (coachEntity == null)
+            {
+                return NotFound();
+            }
+
+            if (coachEntity.TeamId != teamId)
+            {
+                return BadRequest($"Coach {coachEntity.FirstName} {coachEntity.LastName} is not part of the team with Id {teamId}");
+            }
+
+            _repo.RemoveCoachFromTeamAsync(coachEntity, teamId);
+            await _repo.SaveChangesAsync();
+
+            return NoContent();
+        }
+
         [HttpDelete("coach/{coachId}")]
         public async Task<ActionResult> DeleteCoach(int coachId)
         {

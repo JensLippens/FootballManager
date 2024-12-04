@@ -86,6 +86,15 @@ namespace FootballManager.Services
         }
         */
 
+        public async void RemovePlayerFromTeamAsync(Player player, int teamId)
+        {
+            var team = await GetTeamAsync(teamId);
+            if (team != null)
+            {
+                team.Players.Remove(player);
+            }
+        }
+
         public void DeletePlayer(Player player)
         {
             _context.Players.Remove(player);
@@ -146,6 +155,14 @@ namespace FootballManager.Services
             _context.Coaches.Add(coach);
         }
         */
+        public async void RemoveCoachFromTeamAsync(Coach coach, int teamId)
+        {
+            var team = await GetTeamAsync(teamId);
+            if (team != null)
+            {
+                team.Coach = null;
+            }
+        }
 
         public void DeleteCoach(Coach coach)
         {

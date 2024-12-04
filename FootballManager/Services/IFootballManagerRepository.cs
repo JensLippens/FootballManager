@@ -14,6 +14,7 @@ namespace FootballManager.Services
         Task<IEnumerable<Player>> GetPlayersFromTeamAsync(int teamId);
         Task AddPlayerAsyncWithTeam(int teamId, Player player);
         //void AddPlayerAsyncWithoutTeam(Player player);
+        void RemovePlayerFromTeamAsync(Player player, int teamId);
         void DeletePlayer(Player player);
 
         //COACHES
@@ -23,6 +24,7 @@ namespace FootballManager.Services
         Task<Coach?> GetCoachFromTeamAsync(int teamId);
         Task AddCoachAsyncWithTeam(int teamId, Coach coach);
         //void AddCoachrAsyncWithoutTeam(Coach player);
+        void RemoveCoachFromTeamAsync(Coach coach, int teamId);
         void DeleteCoach(Coach coach);
 
         //TEAMS
