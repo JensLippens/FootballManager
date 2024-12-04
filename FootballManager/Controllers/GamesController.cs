@@ -5,7 +5,7 @@ using FootballManager.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections;
+using System.Text.Json;
 
 namespace FootballManager.Controllers
 {
@@ -16,6 +16,7 @@ namespace FootballManager.Controllers
         private readonly ILogger<GamesController> _logger;
         private readonly IFootballManagerRepository _repo;
         private readonly IMapper _mapper;
+        const int maximumPageSize = 10;
 
         public GamesController(ILogger<GamesController> logger, IFootballManagerRepository repo, IMapper mapper)
         {
@@ -26,18 +27,27 @@ namespace FootballManager.Controllers
 
         [HttpGet("league/{leagueYear}")]
 
-        public async Task<ActionResult<IEnumerable<GameDto>>> GetGamesFromSpecificLeague(int leagueYear)
+        public async Task<ActionResult<IEnumerable<GameDto>>> GetGamesFromSpecificLeague(int leagueYear,
+            [FromQuery] string? teamName, int pageNumber = 1, int pageSize = 8)
         {
             var leagueEntity = await _repo.GetLeagueAsync(leagueYear);
             if (leagueEntity == null)
             {
                 return NotFound();
             }
-            var gamesEntities = await _repo.GetGamesFromSpecificLeagueAsync(leagueYear);
+            if (pageSize > maximumPageSize)
+            {
+                pageSize = maximumPageSize;
+            }
+            var (gamesEntities, paginationMetadata) = await _repo.GetGamesFromSpecificLeagueAsync(leagueYear, teamName, pageNumber, pageSize);
+
+            Response.Headers.Append("X-Pagination",
+                JsonSerializer.Serialize(paginationMetadata));
 
             return Ok(_mapper.Map<IEnumerable<GameDto>>(gamesEntities));
         }
 
+        /*
         [HttpGet("league/{leagueYear}/team/{teamId}")]
 
         public async Task<ActionResult<IEnumerable<GameDto>>> GetGamesFromTeamInSpecificLeague(int leagueYear, int teamId)
@@ -51,6 +61,7 @@ namespace FootballManager.Controllers
             var gamesEntities = await _repo.GetGamesFromTeamInSpecificLeagueAsync(leagueYear, teamId);
             return Ok(_mapper.Map<IEnumerable<GameDto>>(gamesEntities));
         }
+        */
 
         [HttpGet("game/{gameId}", Name = "GetGame")]
 

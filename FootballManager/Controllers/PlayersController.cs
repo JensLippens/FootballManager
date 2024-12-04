@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.JsonPatch;
 using FootballManager.Services;
 using AutoMapper;
+using System.Text.Json;
 
 namespace FootballManager.Controllers
 {
@@ -13,6 +14,7 @@ namespace FootballManager.Controllers
         private readonly ILogger<PlayersController> _logger;
         private readonly IFootballManagerRepository _repo;
         private readonly IMapper _mapper;
+        const int maximumPageSize = 25;
 
         public PlayersController(ILogger<PlayersController> logger, IFootballManagerRepository repo, IMapper mapper)
         {
@@ -22,9 +24,18 @@ namespace FootballManager.Controllers
         }
         
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<PlayerDto>>> GetAllPlayers()
+        public async Task<ActionResult<IEnumerable<PlayerDto>>> GetAllPlayers(
+            string? searchQuery, int pageNumber = 1, int pageSize = 25) 
         {
-            var playerEntities = await _repo.GetAllPlayersAsync();
+            if (pageSize > maximumPageSize)
+            {
+                pageSize = maximumPageSize;
+            }
+
+            var (playerEntities, paginationMetadata) = await _repo.GetAllPlayersAsync(searchQuery, pageNumber, pageSize);
+
+            Response.Headers.Append("X-Pagination",
+                JsonSerializer.Serialize(paginationMetadata));
 
             return Ok(_mapper.Map<IEnumerable<PlayerDto>>(playerEntities));
         }

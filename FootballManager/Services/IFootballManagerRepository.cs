@@ -8,7 +8,8 @@ namespace FootballManager.Services
         Task<bool> SaveChangesAsync();
 
         //PLAYERS
-        Task<IEnumerable<Player>> GetAllPlayersAsync();
+        //Task<IEnumerable<Player>> GetAllPlayersAsync();
+        Task<(IEnumerable<Player>, PaginationMetadata)> GetAllPlayersAsync(string? searchQuery, int pageNumber, int pageSize);
         Task<Player?> GetPlayerAsync(int playerId);
         Task<IEnumerable<Player>> GetPlayersFromTeamAsync(int teamId);
         Task AddPlayerAsyncWithTeam(int teamId, Player player);
@@ -17,6 +18,7 @@ namespace FootballManager.Services
 
         //COACHES
         Task<IEnumerable<Coach>> GetAllCoachesAsync();
+        Task<IEnumerable<Coach>> GetAllCoachesAsync(string? searchQuery);
         Task<Coach?> GetCoachAsync(int coachId);
         Task<Coach?> GetCoachFromTeamAsync(int teamId);
         Task AddCoachAsyncWithTeam(int teamId, Coach coach);
@@ -37,8 +39,9 @@ namespace FootballManager.Services
         Task AddLeagueAsync(League league);
 
         //GAMES
-        Task<IEnumerable<Game>> GetGamesFromSpecificLeagueAsync(int leagueYear);
-        Task<IEnumerable<Game>> GetGamesFromTeamInSpecificLeagueAsync(int leagueYear, int teamId);
+        //Task<IEnumerable<Game>> GetGamesFromSpecificLeagueAsync(int leagueYear, int pageNumber, int pageSize);
+        Task<(IEnumerable<Game>, PaginationMetadata)> GetGamesFromSpecificLeagueAsync(int leagueYear, string? teamName, int pageNumber, int pageSize);
+        //Task<IEnumerable<Game>> GetGamesFromTeamInSpecificLeagueAsync(int leagueYear, int teamId);
         Task<Game?> GetGameWithHomeTeamAndAwayTeamAsync(int homeTeamId, int awayTeamId, int leagueYear);
         Task<Game?> GetGameAsync(int gameId);
         Task AddGameAsync(Game game);

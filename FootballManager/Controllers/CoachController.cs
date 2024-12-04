@@ -24,9 +24,9 @@ namespace FootballManager.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CoachDto>>> GetAllCoaches()
+        public async Task<ActionResult<IEnumerable<CoachDto>>> GetAllCoaches(string? searchQuery)
         {
-            var coachEntities = await _repo.GetAllCoachesAsync();
+            var coachEntities = await _repo.GetAllCoachesAsync(searchQuery);
 
             return Ok(_mapper.Map<IEnumerable<CoachDto>>(coachEntities));
         }
