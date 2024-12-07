@@ -413,10 +413,7 @@ namespace FootballManager.Services
                 .Select(l => l.Year)
                 .FirstOrDefaultAsync();
 
-            return await _context.Standings
-                .Where(s => s.LeagueYear == mostRecentYear)
-                .Include(s => s.Team)
-                .ToListAsync();
+            return await GetLeagueYearStandingsAsync(mostRecentYear);
         }
         public async Task<IEnumerable<Standing>> GetLeagueYearStandingsAsync(int leagueYear)
         {

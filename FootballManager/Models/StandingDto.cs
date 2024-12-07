@@ -14,6 +14,7 @@ namespace FootballManager.Models
         public int GoalsFor { get; set; }
         public int GoalsAgainst { get; set; }
         public int GoalDifference { get; set; } // Add with Automapper Profile
+        public int TeamId { get; set; }
         public string TeamName { get; set; } = string.Empty; // Add with Automapper Profile
         public int LeagueYear { get; set; }
     }
