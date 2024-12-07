@@ -24,7 +24,6 @@ namespace FootballManager.Models
         [Range(1, 99, ErrorMessage = "The shirtnumber must be between 1 and 99.")]
         public int ShirtNumber { get; set; }
 
-        public int? TeamId { get; set; }
     }
 
 }

@@ -18,6 +18,8 @@ namespace FootballManager.Models
         [Required]
         [Range(1, 99, ErrorMessage = "The years of experience must be between 1 and 99.")]
         public int YearsOfExperience { get; set; }
+
+        public int? TeamId { get; set; }
     }
 
 }

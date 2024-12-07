@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.JsonPatch;
 using FootballManager.Services;
 using AutoMapper;
 using System.Text.Json;
+using FootballManager.Entities;
 
 namespace FootballManager.Controllers
 {
@@ -25,14 +26,14 @@ namespace FootballManager.Controllers
         
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PlayerDto>>> GetAllPlayers(
-            string? searchQuery, int pageNumber = 1, int pageSize = 25) 
+            string? searchQuery, Position? position, int pageNumber = 1, int pageSize = 25) 
         {
             if (pageSize > maximumPageSize)
             {
                 pageSize = maximumPageSize;
             }
 
-            var (playerEntities, paginationMetadata) = await _repo.GetAllPlayersAsync(searchQuery, pageNumber, pageSize);
+            var (playerEntities, paginationMetadata) = await _repo.GetAllPlayersAsync(searchQuery, position, pageNumber, pageSize);
 
             Response.Headers.Append("X-Pagination",
                 JsonSerializer.Serialize(paginationMetadata));
@@ -74,6 +75,11 @@ namespace FootballManager.Controllers
                 return NotFound();
             }
 
+            if (await _repo.ShirtNumberAlreadyTaken(teamId, player.ShirtNumber))
+            {
+                return BadRequest($"Shirtnumber {player.ShirtNumber} is already in use for this team");
+            }
+
             var playerToAdd = _mapper.Map<Entities.Player>(player);
 
             await _repo.AddPlayerAsyncWithTeam(teamId, playerToAdd);
@@ -89,15 +95,33 @@ namespace FootballManager.Controllers
                 playerToReturn);
         }
         
-        [HttpPut("player/{playerId}")]
+        [HttpPut("team/{newTeamId}/player/{playerId}")]
         public async Task<ActionResult> UpdatePlayerFull(
             int playerId,
-            PlayerForUpdateDto player) 
+            int newTeamId,
+            PlayerForCreationDto player) 
         {
+            if (!await _repo.TeamIdExistsAsync(newTeamId))
+            {
+                _logger.LogInformation($"Team with id {newTeamId} does not exists");
+                return NotFound();
+            }
+
+            if (await _repo.ShirtNumberAlreadyTaken(newTeamId, player.ShirtNumber))
+            {
+                return BadRequest($"Shirtnumber {player.ShirtNumber} is already in use for this team");
+            }
+
             var playerEntity = await _repo.GetPlayerAsync(playerId);
             if (playerEntity == null)
             {
                 return NotFound();
+            }
+
+            if (playerEntity.TeamId != newTeamId)
+            {
+                await _repo.RemovePlayerFromTeamAsync(playerEntity, playerEntity.TeamId);
+                await _repo.AddPlayerAsyncWithTeam(newTeamId, playerEntity);
             }
 
             _mapper.Map(player, playerEntity);
@@ -130,9 +154,15 @@ namespace FootballManager.Controllers
             if (!TryValidateModel(playerToPatch))
             {
                 return BadRequest(ModelState);
+            }                      
+
+            if (playerToPatch.TeamId != null && playerToPatch.TeamId != playerEntity.TeamId)
+            {
+                await _repo.RemovePlayerFromTeamAsync(playerEntity, playerEntity.TeamId);
+                await _repo.AddPlayerAsyncWithTeam((int)playerToPatch.TeamId, playerEntity);
             }
 
-           _mapper.Map(playerToPatch, playerEntity);
+            _mapper.Map(playerToPatch, playerEntity);
 
             await _repo.SaveChangesAsync();
 
@@ -147,12 +177,13 @@ namespace FootballManager.Controllers
             {
                 return NotFound();
             }
+
             if (playerEntity.TeamId != teamId)
             {
                 return BadRequest($"Player {playerEntity.FirstName} {playerEntity.LastName} is not part of the team with Id {teamId}");
             }
 
-            _repo.RemovePlayerFromTeamAsync(playerEntity, teamId);
+            await _repo.RemovePlayerFromTeamAsync(playerEntity, teamId);
             await _repo.SaveChangesAsync();
 
             return NoContent();

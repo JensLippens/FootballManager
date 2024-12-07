@@ -5,6 +5,7 @@ using FootballManager.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace FootballManager.Controllers
 {
@@ -24,7 +25,8 @@ namespace FootballManager.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CoachDto>>> GetAllCoaches(string? searchQuery)
+        public async Task<ActionResult<IEnumerable<CoachDto>>> GetAllCoaches(
+            string? searchQuery)
         {
             var coachEntities = await _repo.GetAllCoachesAsync(searchQuery);
 
@@ -59,15 +61,21 @@ namespace FootballManager.Controllers
             int teamId,
             CoachForCreationDto coach)
         {
+            var team = await _repo.GetTeamAsync(teamId);
 
-            if (!await _repo.TeamIdExistsAsync(teamId))
+            if (team == null)
             {
                 return NotFound();
             }
 
             var coachToAdd = _mapper.Map<Entities.Coach>(coach);
 
-            await _repo.AddCoachAsyncWithTeam(teamId, coachToAdd);
+            if (team.Coach != null)
+            {
+                team.Coach.TeamId = null;
+            }
+
+            await _repo.AddCoachAsyncWithTeam(team.Id, coachToAdd);
             await _repo.SaveChangesAsync();
 
             var coachToReturn = _mapper.Map<Models.CoachDto>(coachToAdd);
@@ -75,7 +83,7 @@ namespace FootballManager.Controllers
             return CreatedAtRoute("GetCoach",
                 new
                 {
-                    playerId = coachToReturn.Id
+                    coachId = coachToReturn.Id
                 },
                 coachToReturn);
         }
@@ -85,13 +93,32 @@ namespace FootballManager.Controllers
             int coachId,
             CoachForUpdateDto coach)
         {
+            if (coach.TeamId != null)
+            {
+                if (!await _repo.TeamIdExistsAsync((int)coach.TeamId))
+                {
+                    _logger.LogInformation($"Team with id {coach.TeamId} does not exists");
+                    return NotFound();
+                }
+            }
+
             var coachEntity = await _repo.GetCoachAsync(coachId);
             if (coachEntity == null)
             {
                 return NotFound();
             }
 
-            _mapper.Map(coach, coachEntity);
+            
+            if (coach.TeamId != null && coachEntity.TeamId != coach.TeamId)
+            {
+                if (coachEntity.TeamId != null)
+                {
+                    await _repo.RemoveCoachFromTeamAsync(coachEntity, coachEntity.TeamId);
+                    await _repo.AddCoachAsyncWithTeam((int)coach.TeamId, coachEntity);
+                }
+            }
+            
+            _mapper.Map(coach, coachEntity);           
 
             await _repo.SaveChangesAsync();
 
@@ -122,7 +149,15 @@ namespace FootballManager.Controllers
             {
                 return BadRequest(ModelState);
             }
-
+            
+            if (coachToPatch.TeamId != null)
+            {
+                var currentCoach = await _repo.GetCoachFromTeamAsync((int)coachToPatch.TeamId);
+                if (currentCoach != null)
+                {
+                    currentCoach.TeamId = null;
+                }
+            }
             _mapper.Map(coachToPatch, coachEntity);
 
             await _repo.SaveChangesAsync();
@@ -144,7 +179,7 @@ namespace FootballManager.Controllers
                 return BadRequest($"Coach {coachEntity.FirstName} {coachEntity.LastName} is not part of the team with Id {teamId}");
             }
 
-            _repo.RemoveCoachFromTeamAsync(coachEntity, teamId);
+            await _repo.RemoveCoachFromTeamAsync(coachEntity, teamId);
             await _repo.SaveChangesAsync();
 
             return NoContent();

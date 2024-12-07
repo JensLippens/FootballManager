@@ -16,7 +16,7 @@ namespace FootballManager.Controllers
         private readonly ILogger<GamesController> _logger;
         private readonly IFootballManagerRepository _repo;
         private readonly IMapper _mapper;
-        const int maximumPageSize = 10;
+        const int maximumPageSize = 20;
 
         public GamesController(ILogger<GamesController> logger, IFootballManagerRepository repo, IMapper mapper)
         {
@@ -79,11 +79,23 @@ namespace FootballManager.Controllers
         [HttpPost]
         public async Task<ActionResult<PlayerDto>> NewGame(GameForCreationDto game)
         {
+            if (!await _repo.LeagueYearExistsAsync(game.LeagueYear))
+            {
+                return BadRequest($"League {game.LeagueYear} does not yet exist");
+            }
+
             var gameEntity = await _repo.GetGameWithHomeTeamAndAwayTeamAsync(game.HomeTeamId, game.AwayTeamId, game.LeagueYear);
+            
             if (gameEntity != null)
             {
                 return BadRequest($"A Game between home team {gameEntity?.HomeTeam?.Name} and away team {gameEntity?.AwayTeam?.Name} already exists for league {gameEntity?.LeagueYear} on matchday {gameEntity?.MatchDay}");
             }
+
+            if (!await _repo.TeamsArePartOfLeagueAsync(game.HomeTeamId, game.AwayTeamId, game.LeagueYear))
+            {
+                return BadRequest($"Teams with IDs {game.HomeTeamId} and/or {game.AwayTeamId} are not part of league {game.LeagueYear}");
+            }
+
 
             var gameToAdd = _mapper.Map<Entities.Game>(game);
 
@@ -108,7 +120,7 @@ namespace FootballManager.Controllers
         }
 
         [HttpPatch("{gameId}")]
-        public async Task<ActionResult> UpdateGame(
+        public async Task<ActionResult> UpdateGameScore(
             int gameId,
             JsonPatchDocument<GameForUpdateDto> patchDocument)
         {
@@ -160,11 +172,11 @@ namespace FootballManager.Controllers
                 homeTeamStanding.GamesPlayed--;
                 awayTeamStanding.GamesPlayed--;
 
-                homeTeamStanding.GoalsFor -= game.HomeTeamScore.Value;
-                homeTeamStanding.GoalsAgainst -= game.AwayTeamScore.Value;
+                homeTeamStanding.GoalsFor -= game.HomeTeamScore.GetValueOrDefault();
+                homeTeamStanding.GoalsAgainst -= game.AwayTeamScore.GetValueOrDefault();
 
-                awayTeamStanding.GoalsFor -= game.AwayTeamScore.Value;
-                awayTeamStanding.GoalsAgainst -= game.HomeTeamScore.Value;
+                awayTeamStanding.GoalsFor -= game.AwayTeamScore.GetValueOrDefault();
+                awayTeamStanding.GoalsAgainst -= game.HomeTeamScore.GetValueOrDefault();
 
                 if (game.HomeTeamScore > game.AwayTeamScore)
                 {
@@ -195,11 +207,11 @@ namespace FootballManager.Controllers
                 homeTeamStanding.GamesPlayed++;
                 awayTeamStanding.GamesPlayed++;
 
-                homeTeamStanding.GoalsFor += game.HomeTeamScore.Value;
-                homeTeamStanding.GoalsAgainst += game.AwayTeamScore.Value;
+                homeTeamStanding.GoalsFor += game.HomeTeamScore.GetValueOrDefault();
+                homeTeamStanding.GoalsAgainst += game.AwayTeamScore.GetValueOrDefault();
 
-                awayTeamStanding.GoalsFor += game.AwayTeamScore.Value;
-                awayTeamStanding.GoalsAgainst += game.HomeTeamScore.Value;
+                awayTeamStanding.GoalsFor += game.AwayTeamScore.GetValueOrDefault();
+                awayTeamStanding.GoalsAgainst += game.HomeTeamScore.GetValueOrDefault();
 
                 if (game.HomeTeamScore > game.AwayTeamScore)
                 {

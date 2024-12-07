@@ -30,7 +30,19 @@ namespace FootballManager.Controllers
             return Ok(_mapper.Map<IEnumerable<TeamWithoutGamesOrPlayersDto>>(teamEntities));
         }
 
-        [HttpGet("{teamId}", Name = "GetTeam")]
+        [HttpGet("league/{leagueYear}")]
+        public async Task<ActionResult<IEnumerable<TeamWithoutGamesOrPlayersDto>>> GetAllTeamsForLeague(int leagueYear)
+        {
+            if (!await _repo.LeagueYearExistsAsync(leagueYear))
+            {
+                return BadRequest($"League {leagueYear} does not yet exist");
+            }
+            var teamEntities = await _repo.GetTeamsForLeagueAsync(leagueYear);
+
+            return Ok(_mapper.Map<IEnumerable<TeamWithoutGamesOrPlayersDto>>(teamEntities));
+        }
+
+        [HttpGet("team/{teamId}", Name = "GetTeam")]
         public async Task<ActionResult<TeamDto>> GetTeam(int teamId)
         {
             var teamEntity = await _repo.GetTeamAsync(teamId);
@@ -42,7 +54,7 @@ namespace FootballManager.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<TeamDto>> NewTeam(TeamForCreationDto team)
+        public async Task<ActionResult<TeamDto>> AddTeam(TeamForCreationDto team)
         {          
             if (await _repo.TeamNameExistsAsync(team.Name))
             {
@@ -63,9 +75,11 @@ namespace FootballManager.Controllers
                 teamToReturn);
         }
 
-        [HttpPatch("{teamId}")]
+
+        [HttpPatch("team/{teamId}/league/{leagueYear}")]
         public async Task<ActionResult> UpdateTeam(
             int teamId,
+            int leagueYear,
             JsonPatchDocument<TeamForUpdateDto> patchDocument)
         {
             var teamEntity = await _repo.GetTeamAsync(teamId);
@@ -74,6 +88,10 @@ namespace FootballManager.Controllers
                 return NotFound();
             }
 
+            if (teamEntity.Leagues.Any(l => l.Year == leagueYear))
+            {
+                return BadRequest($"Team {teamEntity.Name} is already part of league {leagueYear}");
+            }
             var teamToPatch = _mapper.Map<TeamForUpdateDto>(teamEntity);
 
             patchDocument.ApplyTo(teamToPatch, ModelState);
@@ -90,6 +108,27 @@ namespace FootballManager.Controllers
 
             _mapper.Map(teamToPatch, teamEntity);
 
+            await _repo.AddTeamToLeagueAsync(teamEntity, leagueYear);             
+            await _repo.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [HttpDelete("team/{teamId}/league/{leagueYear}")]
+        public async Task<ActionResult> RemoveTeamFromLeague(int teamId, int leagueYear)
+        {
+            var teamEntity = await _repo.GetTeamAsync(teamId);
+            if (teamEntity == null)
+            {
+                return NotFound();
+            }
+
+            if (!teamEntity.Leagues.Any(l => l.Year == leagueYear))
+            {
+                return BadRequest($"Team {teamEntity.Name} is not part of league with year {leagueYear}");
+            }
+
+            await _repo.RemoveTeamFromLeagueAsync(teamEntity, leagueYear);
             await _repo.SaveChangesAsync();
 
             return NoContent();

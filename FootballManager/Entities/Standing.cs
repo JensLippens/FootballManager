@@ -13,10 +13,12 @@ namespace FootballManager.Entities
         public int GoalsFor { get; set; }
         public int GoalsAgainst { get; set; }
 
+        [Required]
         public int TeamId { get; set; }
         [ForeignKey("TeamId")]
         public Team? Team { get; set; }
 
+        [Required]
         public int LeagueYear { get; set; }
         [ForeignKey("LeagueYear")]
         public League? League { get; set; }

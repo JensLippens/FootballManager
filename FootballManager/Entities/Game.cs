@@ -18,15 +18,15 @@ namespace FootballManager.Entities
         public int? HomeTeamScore { get; set; }
         public int? AwayTeamScore { get; set; }
 
-        [ForeignKey("HomeTeamId")]
-        public Team? HomeTeam { get; set; }
         [Required]
         public int HomeTeamId { get; set; }
+        [ForeignKey("HomeTeamId")]
+        public Team? HomeTeam { get; set; }
 
-        [ForeignKey("AwayTeamId")]
-        public Team? AwayTeam { get; set; }
         [Required]
         public int AwayTeamId { get; set; }
+        [ForeignKey("AwayTeamId")]
+        public Team? AwayTeam { get; set; }
 
         [Required]
         public int LeagueYear { get; set; }

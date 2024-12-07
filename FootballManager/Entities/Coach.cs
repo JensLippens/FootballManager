@@ -8,7 +8,7 @@ namespace FootballManager.Entities
         [Required]
         public int YearsOfExperience { get; set; }
 
-        public int TeamId { get; set; }
+        public int? TeamId { get; set; }
         [ForeignKey("TeamId")]
         public Team? Team { get; set; }
 

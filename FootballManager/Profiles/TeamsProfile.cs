@@ -10,6 +10,7 @@ namespace FootballManager.Profiles
             CreateMap<Entities.Team, Models.TeamWithoutGamesOrPlayersDto>();
             CreateMap<Models.TeamForCreationDto, Entities.Team>();
             CreateMap<Models.TeamForUpdateDto, Entities.Team>();
+            CreateMap<Entities.Team, Models.TeamForUpdateDto>();
         }
     }
 }

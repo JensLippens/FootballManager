@@ -15,9 +15,9 @@ namespace FootballManager.Entities
 
         public bool IsLeftFooted { get; set; } = false;
 
+        public int? TeamId { get; set; }
         [ForeignKey("TeamId")]
         public Team? Team { get; set; }
-        public int? TeamId { get; set; }
 
         public Player() : base(string.Empty, string.Empty, DateTime.MinValue)
         { }

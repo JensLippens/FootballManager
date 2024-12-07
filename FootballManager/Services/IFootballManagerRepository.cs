@@ -1,5 +1,7 @@
 ﻿using FootballManager.Entities;
+using FootballManager.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Numerics;
 
 namespace FootballManager.Services
 {
@@ -9,12 +11,14 @@ namespace FootballManager.Services
 
         //PLAYERS
         //Task<IEnumerable<Player>> GetAllPlayersAsync();
-        Task<(IEnumerable<Player>, PaginationMetadata)> GetAllPlayersAsync(string? searchQuery, int pageNumber, int pageSize);
+        Task<(IEnumerable<Player>, PaginationMetadata)> GetAllPlayersAsync(
+                string? searchQuery, Position? position, int pageNumber, int pageSize);
         Task<Player?> GetPlayerAsync(int playerId);
         Task<IEnumerable<Player>> GetPlayersFromTeamAsync(int teamId);
         Task AddPlayerAsyncWithTeam(int teamId, Player player);
+        Task<bool> ShirtNumberAlreadyTaken(int teamId, int shirtNumber);
         //void AddPlayerAsyncWithoutTeam(Player player);
-        void RemovePlayerFromTeamAsync(Player player, int teamId);
+        Task RemovePlayerFromTeamAsync(Player player, int? teamId);
         void DeletePlayer(Player player);
 
         //COACHES
@@ -24,21 +28,27 @@ namespace FootballManager.Services
         Task<Coach?> GetCoachFromTeamAsync(int teamId);
         Task AddCoachAsyncWithTeam(int teamId, Coach coach);
         //void AddCoachrAsyncWithoutTeam(Coach player);
-        void RemoveCoachFromTeamAsync(Coach coach, int teamId);
+        Task RemoveCoachFromTeamAsync(Coach coach, int? teamId);
         void DeleteCoach(Coach coach);
 
         //TEAMS
         Task<IEnumerable<Team>> GetAllTeamsAsync();
+        Task<IEnumerable<Team>> GetTeamsForLeagueAsync(int leagueYear);
         Task<Team?> GetTeamAsync(int? teamId);
         Task<bool> TeamIdExistsAsync(int teamId);
         Task<bool> TeamNameExistsAsync(string name);
+        Task<bool> TeamsArePartOfLeagueAsync(int homeTeamId, int awayTeamId, int leagueYear);
         Task AddTeamAsync(Team team);
+        Task AddTeamToLeagueAsync(Team team, int leagueYear);
+        Task RemoveTeamFromLeagueAsync(Team team, int leagueYear);
         void DeleteTeam(Team team);
 
         //LEAGUES
         Task<IEnumerable<League>> GetAllLeaguesAsync();
         Task<League?> GetLeagueAsync(int leagueYear, bool includeGames = false, bool includeTeams = false);
+        Task<bool> LeagueYearExistsAsync(int leagueYear);
         Task AddLeagueAsync(League league);
+        void DeleteLeague(League league);
 
         //GAMES
         //Task<IEnumerable<Game>> GetGamesFromSpecificLeagueAsync(int leagueYear, int pageNumber, int pageSize);

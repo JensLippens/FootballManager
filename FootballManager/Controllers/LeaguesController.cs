@@ -59,7 +59,11 @@ namespace FootballManager.Controllers
 
         [HttpPost]
         public async Task<ActionResult<LeagueDto>> NewLeague(LeagueForCreationDto league)
-        {      
+        {
+            if (await _repo.LeagueYearExistsAsync(league.Year))
+            {
+                return BadRequest($"League {league.Year} already exists");
+            }
             var leagueToAdd = _mapper.Map<Entities.League>(league);
 
             await _repo.AddLeagueAsync(leagueToAdd);
@@ -73,6 +77,21 @@ namespace FootballManager.Controllers
                     leagueYear = leagueToReturn.Year
                 },
                 leagueToReturn);
+        }
+
+        [HttpDelete("league/{leagueYear}")]
+        public async Task<ActionResult> DeleteLeague(int leagueYear)
+        {
+            var leagueEntity = await _repo.GetLeagueAsync(leagueYear);
+            if (leagueEntity == null)
+            {
+                return NotFound();
+            }
+
+            _repo.DeleteLeague(leagueEntity);
+            await _repo.SaveChangesAsync();
+
+            return NoContent();
         }
     }
 }

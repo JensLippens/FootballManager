@@ -1,5 +1,6 @@
 ﻿using FootballManager.DbContexts;
 using FootballManager.Entities;
+using FootballManager.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace FootballManager.Services
@@ -30,16 +31,20 @@ namespace FootballManager.Services
                 .ToListAsync();
         }
         */
-        public async Task<(IEnumerable<Player>, PaginationMetadata)> GetAllPlayersAsync(string? searchQuery, int pageNumber, int pageSize)
+        public async Task<(IEnumerable<Player>, PaginationMetadata)> GetAllPlayersAsync(string? searchQuery, Position? position, int pageNumber, int pageSize)
         {
             var playersCollection = _context.Players as IQueryable<Player>;
+
+            if (position != null)
+            {
+                playersCollection = playersCollection.Where(p => p.Position == position);
+            }
 
             if (!string.IsNullOrWhiteSpace(searchQuery))
             {
                 searchQuery = searchQuery.Trim();
                 playersCollection = playersCollection.Where(p => p.FirstName.ToLower().Contains(searchQuery.ToLower()) ||
-                                                                 p.LastName.ToLower().Contains(searchQuery.ToLower()) ||
-                                                                 p.Position.ToString().ToLower().Contains(searchQuery.ToLower()));
+                                                                 p.LastName.ToLower().Contains(searchQuery.ToLower()));
 
             }
 
@@ -79,6 +84,14 @@ namespace FootballManager.Services
                 team.Players.Add(player);
             }
         }
+
+        public async Task<bool> ShirtNumberAlreadyTaken(int teamId, int shirtNumber)
+        {
+            return await _context.Players
+                .Where(p => p.TeamId == teamId)
+                .AnyAsync(p => p.ShirtNumber == shirtNumber);
+
+        }
         /*
         public void AddPlayerAsyncWithoutTeam(Player player)
         {
@@ -86,7 +99,7 @@ namespace FootballManager.Services
         }
         */
 
-        public async void RemovePlayerFromTeamAsync(Player player, int teamId)
+        public async Task RemovePlayerFromTeamAsync(Player player, int? teamId)
         {
             var team = await GetTeamAsync(teamId);
             if (team != null)
@@ -151,6 +164,7 @@ namespace FootballManager.Services
             if (team != null)
             {
                 team.Coach = coach;
+                coach.TeamId = teamId;
             }
         }
         /*
@@ -159,7 +173,7 @@ namespace FootballManager.Services
             _context.Coaches.Add(coach);
         }
         */
-        public async void RemoveCoachFromTeamAsync(Coach coach, int teamId)
+        public async Task RemoveCoachFromTeamAsync(Coach coach, int? teamId)
         {
             var team = await GetTeamAsync(teamId);
             if (team != null)
@@ -189,10 +203,18 @@ namespace FootballManager.Services
         {
             return await _context.Teams
                 .Where(t => t.Id == teamId)
+                .Include(t => t.Leagues)
                 .Include(t => t.Games)
                 .Include(t => t.Players)
                 .Include(t => t.Coach)
                 .FirstOrDefaultAsync();
+        }
+
+        public async Task<IEnumerable<Team>> GetTeamsForLeagueAsync(int leagueYear)
+        {
+           return await _context.Teams
+                .Where(t => t.Leagues.Any(l => l.Year == leagueYear))
+                .ToListAsync();
         }
 
         public async Task<bool> TeamIdExistsAsync(int teamId)
@@ -203,11 +225,43 @@ namespace FootballManager.Services
         {
             return await _context.Teams.AnyAsync(t => t.Name == name);
         }
+        public async Task<bool> TeamsArePartOfLeagueAsync(int homeTeamId, int awayTeamId,int leagueYear)
+        {
+            var league = await GetLeagueAsync(leagueYear, true, true);
+            if (league != null)
+            {
+                return league.Teams.Any(t => t.Id == homeTeamId) && 
+                       league.Teams.Any(t => t.Id == awayTeamId);
+            }
+            return false;
+        }
 
         public async Task AddTeamAsync(Team team)
         {
             await _context.Teams.AddAsync(team);
         }
+
+        public async Task AddTeamToLeagueAsync(Team team, int leagueYear)
+        {
+            var league = await GetLeagueAsync(leagueYear);
+            if (league != null)
+            {
+                league.Teams.Add(team);
+                team.Leagues.Add(league);
+                await CreateNewStandingAsync(new Standing(team.Id, leagueYear));
+            }
+        }
+
+        public async Task RemoveTeamFromLeagueAsync(Team team, int leagueYear)
+        {
+            var league = await GetLeagueAsync(leagueYear);
+            if (league != null)
+            {
+                league.Teams.Remove(team);
+                team.Leagues.Remove(league);
+            }
+        }
+
         public void DeleteTeam(Team team)
         {
             _context.Teams.Remove(team);
@@ -236,15 +290,35 @@ namespace FootballManager.Services
             }
             if (includeTeams)
             {
-                query = query.Include(l => l.Teams);
+                query = query.Include(l => l.Teams).ThenInclude(t => t.Coach);
             }
             return await query
                 .Where(l => l.Year == leagueYear)
                 .FirstOrDefaultAsync();            
         }
+
+        public async Task<bool> LeagueYearExistsAsync(int leagueYear)
+        {
+            return await _context.Leagues.AnyAsync(l => l.Year == leagueYear);
+        }
+
         public async Task AddLeagueAsync(League league)
         {
+           var leagueTeams = await GetTeamsForLeagueAsync(league.Year - 1);
+           if (leagueTeams != null)
+           {
+                league.Teams = leagueTeams.ToList();
+                foreach (var team in leagueTeams)
+                {
+                    await CreateNewStandingAsync(new Standing(team.Id, league.Year));
+                }
+           }
            await _context.Leagues.AddAsync(league);
+        }
+
+        public void DeleteLeague(League league)
+        {
+            _context.Leagues.Remove(league);
         }
         /// <summary>
         /// GAMES
@@ -274,7 +348,7 @@ namespace FootballManager.Services
             if (!string.IsNullOrEmpty(teamName))
             {
                 teamName = teamName.Trim();
-                gamesCollection = gamesCollection.Where(g => g.HomeTeam.Name == teamName || g.AwayTeam.Name == teamName);
+                gamesCollection = gamesCollection.Where(g => g.HomeTeam!.Name == teamName || g.AwayTeam!.Name == teamName);
             }            
             
             var totalItemCount = await gamesCollection.CountAsync();
@@ -312,6 +386,8 @@ namespace FootballManager.Services
         public async Task<Game?> GetGameAsync(int gameId)
         {
             return await _context.Games
+                .Include(g => g.HomeTeam)
+                .Include(g => g.AwayTeam)
                 .Where(g => g.Id == gameId)
                 .FirstOrDefaultAsync();
         }
@@ -355,6 +431,11 @@ namespace FootballManager.Services
             return await _context.Standings
                 .Where(s => s.TeamId == teamId && s.LeagueYear == leagueYear)
                 .FirstOrDefaultAsync();
+        }
+
+        public async Task CreateNewStandingAsync(Standing standing)
+        {
+            await _context.Standings.AddAsync(standing);
         }
     }
 }

@@ -7,7 +7,7 @@ namespace FootballManager.Models
     public class LeagueWithTeamsAndGamesDto
     {
         public int Year { get; set; }
-        public ICollection<TeamDto> Teams { get; set; } = new List<TeamDto>();
+        public ICollection<TeamWithoutGamesOrPlayersDto> Teams { get; set; } = new List<TeamWithoutGamesOrPlayersDto>();
         public ICollection<GameDto> Games { get; set; } = new List<GameDto>();
     }
 }

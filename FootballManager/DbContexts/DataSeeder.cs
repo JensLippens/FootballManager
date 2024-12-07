@@ -29,8 +29,8 @@ namespace FootballManager.DbContexts
             var faker = new Faker();
 
             // Create Leagues
-            var leagueCurrent = new League(2025);
             var leaguePrevious = new League(2024);
+            var leagueCurrent = new League(2025);
             _context.Leagues.Add(leagueCurrent);
             _context.Leagues.Add(leaguePrevious);
             _context.SaveChanges();  
@@ -42,11 +42,11 @@ namespace FootballManager.DbContexts
                 teams.Add(new Team(belgianTeams[i]));
             }
 
-            var league2025Teams = teams.Take(16).ToList();
             var league2024Teams = teams.Take(14).Concat(teams.Skip(16)).ToList();
+            var league2025Teams = teams.Take(16).ToList();
 
-            leagueCurrent.Teams.AddRange(league2025Teams);
             leaguePrevious.Teams.AddRange(league2024Teams);
+            leagueCurrent.Teams.AddRange(league2025Teams);
             _context.SaveChanges();  
 
             // Create Players
@@ -115,20 +115,21 @@ namespace FootballManager.DbContexts
             var teamsPrevious = leaguePrevious.Teams.ToList();
             var totalMatchdays = (teamsCurrent.Count - 1) * 2;
 
-            var league2025Games = GenerateRoundRobinSchedule(league2025Teams, 2025, 10, 30, new DateTime(2024,7,27));
             var league2024Games = GenerateRoundRobinSchedule(league2024Teams, 2024, 30, 30, new DateTime(2023,7,29));
+            var league2025Games = GenerateRoundRobinSchedule(league2025Teams, 2025, 10, 30, new DateTime(2024,7,27));
 
-            leagueCurrent.Games.AddRange(league2025Games);
             leaguePrevious.Games.AddRange(league2024Games);
+            leagueCurrent.Games.AddRange(league2025Games);
 
-            var standings2025 = league2025Teams.Select(t => new Standing { TeamId = t.Id, LeagueYear = 2025 }).ToList();
             var standings2024 = league2024Teams.Select(t => new Standing { TeamId = t.Id, LeagueYear = 2024 }).ToList();
+            var standings2025 = league2025Teams.Select(t => new Standing { TeamId = t.Id, LeagueYear = 2025 }).ToList();
 
-            UpdateStandings(league2025Games, standings2025);
             UpdateStandings(league2024Games, standings2024);
+            UpdateStandings(league2025Games, standings2025);
 
             // Add leagues, games, and standings to the database
-            _context.Standings.AddRange(standings2024.Concat(standings2025));
+            _context.Standings.AddRange(standings2024);
+            _context.Standings.AddRange(standings2025);
             _context.SaveChanges();
 
             /*
