@@ -10,14 +10,12 @@ namespace FootballManager.Services
         Task<bool> SaveChangesAsync();
 
         //PLAYERS
-        //Task<IEnumerable<Player>> GetAllPlayersAsync();
         Task<(IEnumerable<Player>, PaginationMetadata)> GetAllPlayersAsync(
                 string? searchQuery, Position? position, int pageNumber, int pageSize);
         Task<Player?> GetPlayerAsync(int playerId);
         Task<IEnumerable<Player>> GetPlayersFromTeamAsync(int teamId);
         Task AddPlayerAsyncWithTeam(int teamId, Player player);
         Task<bool> ShirtNumberAlreadyTaken(int teamId, int shirtNumber);
-        //void AddPlayerAsyncWithoutTeam(Player player);
         Task RemovePlayerFromTeamAsync(Player player, int? teamId);
         void DeletePlayer(Player player);
 
@@ -27,7 +25,6 @@ namespace FootballManager.Services
         Task<Coach?> GetCoachAsync(int coachId);
         Task<Coach?> GetCoachFromTeamAsync(int teamId);
         Task AddCoachAsyncWithTeam(int teamId, Coach coach);
-        //void AddCoachrAsyncWithoutTeam(Coach player);
         Task RemoveCoachFromTeamAsync(Coach coach, int? teamId);
         void DeleteCoach(Coach coach);
 
@@ -51,9 +48,9 @@ namespace FootballManager.Services
         void DeleteLeague(League league);
 
         //GAMES
-        //Task<IEnumerable<Game>> GetGamesFromSpecificLeagueAsync(int leagueYear, int pageNumber, int pageSize);
-        Task<(IEnumerable<Game>, PaginationMetadata)> GetGamesFromSpecificLeagueAsync(int leagueYear, string? teamName, int pageNumber, int pageSize);
-        //Task<IEnumerable<Game>> GetGamesFromTeamInSpecificLeagueAsync(int leagueYear, int teamId);
+
+        Task<IEnumerable<Game>> GetAllGamesFromSpecificLeagueAsync(int leagueYear);
+        Task<(IEnumerable<Game>, PaginationMetadata)> GetGamesFromSpecificLeagueAsync(int leagueYear, int? teamId, int pageNumber, int pageSize);
         Task<Game?> GetGameWithHomeTeamAndAwayTeamAsync(int homeTeamId, int awayTeamId, int leagueYear);
         Task<Game?> GetGameAsync(int gameId);
         Task AddGameAsync(Game game);

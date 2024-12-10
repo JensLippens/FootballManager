@@ -16,7 +16,7 @@ namespace FootballManager.Controllers
         private readonly ILogger<GamesController> _logger;
         private readonly IFootballManagerRepository _repo;
         private readonly IMapper _mapper;
-        const int maximumPageSize = 20;
+        const int maximumPageSize = 15;
 
         public GamesController(ILogger<GamesController> logger, IFootballManagerRepository repo, IMapper mapper)
         {
@@ -25,10 +25,25 @@ namespace FootballManager.Controllers
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
+        [HttpGet("table/league/{leagueYear}")]
+        public async Task<ActionResult<IEnumerable<GameDto>>> GetAllGamesFromSpecificLeague(int leagueYear)
+        {
+            var leagueEntity = await _repo.GetLeagueAsync(leagueYear);
+            if (leagueEntity == null)
+            {
+                return NotFound();
+            }
+           
+            var gamesEntities = await _repo.GetAllGamesFromSpecificLeagueAsync(leagueYear);
+
+            return Ok(_mapper.Map<IEnumerable<GameDto>>(gamesEntities));
+        }
+
+
         [HttpGet("league/{leagueYear}")]
 
         public async Task<ActionResult<IEnumerable<GameDto>>> GetGamesFromSpecificLeague(int leagueYear,
-            [FromQuery] string? teamName, int pageNumber = 1, int pageSize = 8)
+            [FromQuery] int? teamId, int pageNumber = 1, int pageSize = 8)
         {
             var leagueEntity = await _repo.GetLeagueAsync(leagueYear);
             if (leagueEntity == null)
@@ -39,7 +54,7 @@ namespace FootballManager.Controllers
             {
                 pageSize = maximumPageSize;
             }
-            var (gamesEntities, paginationMetadata) = await _repo.GetGamesFromSpecificLeagueAsync(leagueYear, teamName, pageNumber, pageSize);
+            var (gamesEntities, paginationMetadata) = await _repo.GetGamesFromSpecificLeagueAsync(leagueYear, teamId, pageNumber, pageSize);
 
             Response.Headers.Append("X-Pagination",
                 JsonSerializer.Serialize(paginationMetadata));

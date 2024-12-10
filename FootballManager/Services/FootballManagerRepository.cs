@@ -22,18 +22,11 @@ namespace FootballManager.Services
         /// PLAYERS
         /// </summary>
         /// 
-
-        /*
-        public async Task<IEnumerable<Player>> GetAllPlayersAsync()
+        public async Task<(IEnumerable<Player>, PaginationMetadata)> GetAllPlayersAsync(
+            string? searchQuery, Position? position, int pageNumber, int pageSize)
         {
-            return await _context.Players
-                .OrderBy(p => p.LastName).ThenBy(p => p.FirstName)
-                .ToListAsync();
-        }
-        */
-        public async Task<(IEnumerable<Player>, PaginationMetadata)> GetAllPlayersAsync(string? searchQuery, Position? position, int pageNumber, int pageSize)
-        {
-            var playersCollection = _context.Players as IQueryable<Player>;
+            var playersCollection = _context.Players
+                .Include(p => p.Team) as IQueryable<Player>;
 
             if (position != null)
             {
@@ -44,7 +37,8 @@ namespace FootballManager.Services
             {
                 searchQuery = searchQuery.Trim();
                 playersCollection = playersCollection.Where(p => p.FirstName.ToLower().Contains(searchQuery.ToLower()) ||
-                                                                 p.LastName.ToLower().Contains(searchQuery.ToLower()));
+                                                                 p.LastName.ToLower().Contains(searchQuery.ToLower()) ||
+                                                                 (p.Team != null ? p.Team.Name.ToLower().Contains(searchQuery.ToLower()) : false));
 
             }
 
@@ -336,7 +330,17 @@ namespace FootballManager.Services
         }
         */
 
-        public async Task<(IEnumerable<Game>, PaginationMetadata)> GetGamesFromSpecificLeagueAsync(int leagueYear, string? teamName, int pageNumber, int pageSize)
+        public async Task<IEnumerable<Game>> GetAllGamesFromSpecificLeagueAsync(int leagueYear)
+        {
+            return await _context.Games
+                .Include(g => g.HomeTeam)
+                .Include(g => g.AwayTeam)
+                .Where(g => g.LeagueYear == leagueYear)
+                //.OrderBy(g => g.MatchDay)
+                .ToListAsync();
+        }
+        public async Task<(IEnumerable<Game>, PaginationMetadata)> GetGamesFromSpecificLeagueAsync(
+            int leagueYear, int? teamId, int pageNumber, int pageSize)
         {
             var gamesCollection = _context.Games as IQueryable<Game>;
 
@@ -345,10 +349,9 @@ namespace FootballManager.Services
                 .Include(g => g.AwayTeam) 
                 .Where(g => g.LeagueYear == leagueYear);
 
-            if (!string.IsNullOrEmpty(teamName))
+            if (teamId != null)
             {
-                teamName = teamName.Trim();
-                gamesCollection = gamesCollection.Where(g => g.HomeTeam!.Name == teamName || g.AwayTeam!.Name == teamName);
+                gamesCollection = gamesCollection.Where(g => g.HomeTeamId == teamId || g.AwayTeamId == teamId);
             }            
             
             var totalItemCount = await gamesCollection.CountAsync();

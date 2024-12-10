@@ -11,6 +11,7 @@
         public Position Position { get; set; }
         public bool IsLeftFooted { get; set; } = false;
         public int ShirtNumber { get; set; }
+        public string TeamName { get; set; } = string.Empty;
     }
 
     public enum Position
